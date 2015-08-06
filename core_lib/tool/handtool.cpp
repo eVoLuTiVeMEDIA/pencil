@@ -1,20 +1,17 @@
 
-#include <QPixmap>
 #include "handtool.h"
-
+#include <cmath>
+#include <QPixmap>
+#include <QVector2D>
 #include "layer.h"
-#include "editor.h"
-#include "scribblearea.h"
 #include "layercamera.h"
+#include "editor.h"
+#include "viewmanager.h"
+#include "scribblearea.h"
+
 
 HandTool::HandTool()
 {
-
-}
-
-ToolType HandTool::type()
-{
-    return HAND;
 }
 
 void HandTool::loadSettings()
@@ -25,74 +22,61 @@ void HandTool::loadSettings()
 
 QCursor HandTool::cursor()
 {
-    return QPixmap(":icons/hand.png");
+    return QPixmap( ":icons/hand.png" );
 }
 
-void HandTool::mousePressEvent(QMouseEvent *event)
+void HandTool::mousePressEvent( QMouseEvent* )
 {
-    Q_UNUSED(event);
 }
 
-void HandTool::mouseReleaseEvent(QMouseEvent *event)
+void HandTool::mouseReleaseEvent( QMouseEvent* event )
 {
-    m_pScribbleArea->applyTransformationMatrix();
-
     //---- stop the hand tool if this was mid button
-    if (event->button() == Qt::MidButton)
+    if ( event->button() == Qt::MidButton )
     {
         //qDebug("Stop Hand Tool");
-        m_pScribbleArea->setPrevTool();
+        mScribbleArea->setPrevTool();
     }
 }
 
-void HandTool::mouseMoveEvent(QMouseEvent *event)
+void HandTool::mouseMoveEvent( QMouseEvent* event )
 {
-    if (event->buttons() != Qt::NoButton)
+    if ( event->buttons() == Qt::NoButton )
     {
-        if (event->modifiers() & Qt::ControlModifier || event->modifiers() & Qt::AltModifier || event->buttons() & Qt::RightButton)
-        {
-            QPoint centralPixel(m_pScribbleArea->width() / 2, m_pScribbleArea->height() / 2);
-            if (getLastPressPixel().x() != centralPixel.x())
-            {
-                qreal scale = 1.0;
-                qreal cosine = 1.0;
-                qreal sine = 0.0;
-                if (event->modifiers() & Qt::AltModifier)    // rotation
-                {
-                    QPointF V1 = getLastPressPixel() - centralPixel;
-                    QPointF V2 = getCurrentPixel() - centralPixel;
-                    cosine = (V1.x() * V2.x() + V1.y() * V2.y()) / (BezierCurve::eLength(V1) * BezierCurve::eLength(V2));
-                    sine = (-V1.x() * V2.y() + V1.y() * V2.x()) / (BezierCurve::eLength(V1) * BezierCurve::eLength(V2));
+        return;
+    }
 
-                }
-                if (event->modifiers() & Qt::ControlModifier || event->buttons() & Qt::RightButton)    // scale
-                {
-                    scale = exp(0.01 * (getCurrentPixel().y() - getLastPressPixel().y()));
-                }
-                m_pScribbleArea->setTransformationMatrix(QMatrix(
-                                                             scale * cosine, -scale * sine,
-                                                             scale * sine,  scale * cosine,
-                                                             0.0,
-                                                             0.0
-                                                             ));
-            }
-        }
-        else     // translation
-        {
-            m_pScribbleArea->setTransformationMatrix(QMatrix(
-                                                         1.0, 0.0, 0.0,
-                                                         1.0,
-                                                         getCurrentPixel().x() - getLastPressPixel().x(),
-                                                         getCurrentPixel().y() - getLastPressPixel().y()));
-        }
+    bool isTranslate = event->modifiers() == Qt::NoModifier;
+    bool isRotate = event->modifiers() & Qt::AltModifier;
+    bool isScale = event->modifiers() & Qt::ControlModifier || event->buttons() & Qt::RightButton;
+
+    if ( isTranslate )
+    {
+        QPointF d = getCurrentPixel() - getLastPressPixel();
+        editor()->view()->translate( d );
+    }
+    else if ( isRotate )
+    {
+        QPoint centralPixel( mScribbleArea->width() / 2, mScribbleArea->height() / 2 );
+        QVector2D v1( getLastPressPixel() - centralPixel );
+        QVector2D v2( getCurrentPixel() - centralPixel );
+
+        float angle = acos( QVector2D::dotProduct( v1, v2 ) / v1.length() * v2.length() );
+        angle = angle * 180.0 / M_PI;
+        
+        mEditor->view()->rotate( angle );
+    }
+    else if ( isScale )
+    {
+        float scaleValue = exp( 0.01 * ( getCurrentPixel().y() - getLastPressPixel().y() ) );
+        mEditor->view()->scale( scaleValue );
     }
 }
 
-void HandTool::mouseDoubleClickEvent(QMouseEvent *event)
+void HandTool::mouseDoubleClickEvent( QMouseEvent *event )
 {
-    if (event->button() == Qt::RightButton)
+    if ( event->button() == Qt::RightButton )
     {
-        m_pScribbleArea->resetView();
+        mEditor->view()->resetView();
     }
-
 }

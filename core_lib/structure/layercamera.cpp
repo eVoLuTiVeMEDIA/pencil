@@ -99,12 +99,12 @@ void CameraPropertiesDialog::setHeight(int height)
 
 // ------
 
-LayerCamera::LayerCamera( Object* object ) : LayerImage( object, Layer::CAMERA )
+LayerCamera::LayerCamera( Object* object ) : Layer( object, Layer::CAMERA )
 {
-    name = QString(tr("Camera Layer"));
+    mName = QString(tr("Camera Layer"));
     viewRect = QRect( QPoint(-320,-240), QSize(640,480) );
     dialog = NULL;
-    addNewKeyFrameAt( 1 );
+    addNewKeyAt( 1 );
 }
 
 LayerCamera::~LayerCamera()
@@ -112,10 +112,10 @@ LayerCamera::~LayerCamera()
 }
 
 
-bool LayerCamera::addNewKeyFrameAt( int frameNumber )
+bool LayerCamera::addNewKeyAt( int frameNumber )
 {
-    QMatrix viewMatrix = getViewAtFrame( frameNumber );
-    Camera* pCamera = new Camera( viewMatrix );
+    QTransform view = getViewAtFrame( frameNumber );
+    Camera* pCamera = new Camera( view );
     pCamera->setPos( frameNumber );
     return addKeyFrame( frameNumber, pCamera );
 }
@@ -130,11 +130,11 @@ Camera* LayerCamera::getLastCameraAtFrame(int frameNumber, int increment)
     return static_cast< Camera* >( getLastKeyFrameAtPosition( frameNumber + increment ) );
 }
 
-QMatrix LayerCamera::getViewAtFrame(int frameNumber)
+QTransform LayerCamera::getViewAtFrame(int frameNumber)
 {
     if ( keyFrameCount() == 0 )
     {
-        return QMatrix();
+        return QTransform();
     }
 
     Camera* camera1 = static_cast< Camera* >( getLastKeyFrameAtPosition( frameNumber ) );
@@ -144,13 +144,13 @@ QMatrix LayerCamera::getViewAtFrame(int frameNumber)
 
     if (camera1 == NULL && camera2 == NULL)
     {
-        return QMatrix();
+        return QTransform();
     }
-    if (camera1 == NULL && camera2 != NULL)
+    else if (camera1 == NULL && camera2 != NULL)
     {
         return camera2->view;
     }
-    if (camera2 == NULL && camera1 != NULL)
+    else if (camera2 == NULL && camera1 != NULL)
     {
         return camera1->view;
     }
@@ -162,12 +162,18 @@ QMatrix LayerCamera::getViewAtFrame(int frameNumber)
     qreal c2 = ( frameNumber - frame1 + 0.0 ) / ( frame2 - frame1 );
     qreal c1 = 1.0 - c2;
     //qDebug() << ">> -- " << c1 << c2;
-    return QMatrix( c1*camera1->view.m11() + c2*camera2->view.m11(),
-                    c1*camera1->view.m12() + c2*camera2->view.m12(),
-                    c1*camera1->view.m21() + c2*camera2->view.m21(),
-                    c1*camera1->view.m22() + c2*camera2->view.m22(),
-                    c1*camera1->view.dx() + c2*camera2->view.dx(),
-                    c1*camera1->view.dy() + c2*camera2->view.dy() );
+
+    auto interpolation = [=]( double f1, double f2 ) -> double
+    {
+        return f1 * c1 + f2 * c2;
+    };
+
+    return QTransform( interpolation( camera1->view.m11(), camera2->view.m11() ),
+                       interpolation( camera1->view.m12(), camera2->view.m12() ),
+                       interpolation( camera1->view.m21(), camera2->view.m21() ),
+                       interpolation( camera1->view.m22(), camera2->view.m22() ),
+                       interpolation( camera1->view.dx(),  camera2->view.dx() ),
+                       interpolation( camera1->view.dy(),  camera2->view.dy() ) );
    
 }
 
@@ -177,9 +183,9 @@ QRect LayerCamera::getViewRect()
 }
 
 
-void LayerCamera::loadImageAtFrame(int frameNumber, QMatrix view)
+void LayerCamera::loadImageAtFrame( int frameNumber, QTransform view )
 {
-    if ( hasKeyFrameAtPosition( frameNumber ) )
+    if ( keyExists( frameNumber ) )
     {
         removeKeyFrame( frameNumber );
     }
@@ -201,15 +207,15 @@ void LayerCamera::editProperties()
 {
     if ( dialog == NULL )
     {
-        dialog = new CameraPropertiesDialog( name, viewRect.width(), viewRect.height() );
+        dialog = new CameraPropertiesDialog( mName, viewRect.width(), viewRect.height() );
     }
-    dialog->setName(name);
+    dialog->setName(mName);
     dialog->setWidth(viewRect.width());
     dialog->setHeight(viewRect.height());
     int result = dialog->exec();
     if (result == QDialog::Accepted)
     {
-        name = dialog->getName();
+        mName = dialog->getName();
         viewRect = QRect(-dialog->getWidth()/2, -dialog->getHeight()/2, dialog->getWidth(), dialog->getHeight());
     }
 }
@@ -218,7 +224,7 @@ QDomElement LayerCamera::createDomElement( QDomDocument& doc )
 {
     QDomElement layerTag = doc.createElement("layer");
     
-    layerTag.setAttribute("name", name);
+    layerTag.setAttribute("name", mName);
     layerTag.setAttribute("visibility", visible);
     layerTag.setAttribute("type", type());
     layerTag.setAttribute("width", viewRect.width());
@@ -246,7 +252,7 @@ void LayerCamera::loadDomElement(QDomElement element, QString dataDirPath)
 {
     Q_UNUSED(dataDirPath);
 
-    name = element.attribute("name");
+    mName = element.attribute("name");
     visible = true;
 
     int width = element.attribute( "width" ).toInt();
@@ -270,7 +276,7 @@ void LayerCamera::loadDomElement(QDomElement element, QString dataDirPath)
                 qreal dx = imageElement.attribute("dx").toDouble();
                 qreal dy = imageElement.attribute("dy").toDouble();
 
-                loadImageAtFrame(frame, QMatrix(m11,m12,m21,m22,dx,dy) );
+                loadImageAtFrame( frame, QTransform( m11, m12, m21, m22, dx, dy ) );
             }
         }
         imageTag = imageTag.nextSibling();

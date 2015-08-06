@@ -2,6 +2,7 @@
 
 Pencil - Traditional Animation Software
 Copyright (C) 2005-2007 Patrick Corrieri & Pascal Naidon
+Copyright (C) 2013-2014 Matt Chiawen Chang
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -14,6 +15,8 @@ GNU General Public License for more details.
 
 */
 
+#include "timeline.h"
+
 #include <QImage>
 #include <QPoint>
 #include <QWidget>
@@ -22,13 +25,16 @@ GNU General Public License for more details.
 #include <QMenu>
 #include <QAction>
 #include <QSplitter>
+#include <QMessageBox>
+#include <QLabel>
 
+#include "layer.h"
 #include "editor.h"
 #include "layermanager.h"
 #include "toolbox.h"
 #include "timecontrols.h"
 #include "timelinecells.h"
-#include "timeline.h"
+
 
 TimeLine::TimeLine( QWidget* parent ) : BaseDockWidget( parent, Qt::Tool )
 {
@@ -36,20 +42,20 @@ TimeLine::TimeLine( QWidget* parent ) : BaseDockWidget( parent, Qt::Tool )
 
 void TimeLine::initUI()
 {
-    setFocusPolicy( Qt::NoFocus );
+    Q_ASSERT( editor() != nullptr );
+
+    setWindowTitle( "Timeline" );
 
     QWidget* timeLineContent = new QWidget( this );
 
-    LayerManager* pLayerManager = core()->layers();
-    connect( pLayerManager, &LayerManager::currentKeyFrameChanged, this, &TimeLine::updateFrame );
+    connect( editor(), &Editor::currentFrameChanged, this, &TimeLine::updateFrame );
 
-    list = new TimeLineCells( this, core(), TIMELINE_CELL_TYPE::Layers );
-    cells = new TimeLineCells( this, core(), TIMELINE_CELL_TYPE::Tracks );
+    mLayerList = new TimeLineCells( this, editor(), TIMELINE_CELL_TYPE::Layers );
+    mTracks = new TimeLineCells( this, editor(), TIMELINE_CELL_TYPE::Tracks );
 
-    connect( list, SIGNAL( mouseMovedY( int ) ), list, SLOT( setMouseMoveY( int ) ) );
-    connect( list, SIGNAL( mouseMovedY( int ) ), cells, SLOT( setMouseMoveY( int ) ) );
+    connect( mLayerList, &TimeLineCells::mouseMovedY, mLayerList, &TimeLineCells::setMouseMoveY );
+    connect( mLayerList, &TimeLineCells::mouseMovedY, mTracks,    &TimeLineCells::setMouseMoveY );
 
-    numberOfLayers = 0;
     hScrollBar = new QScrollBar( Qt::Horizontal );
     vScrollBar = new QScrollBar( Qt::Vertical );
     vScrollBar->setMinimum( 0 );
@@ -108,7 +114,7 @@ void TimeLine::initUI()
 
     QGridLayout* leftLayout = new QGridLayout();
     leftLayout->addWidget( leftToolBar, 0, 0 );
-    leftLayout->addWidget( list, 1, 0 );
+    leftLayout->addWidget( mLayerList, 1, 0 );
     leftLayout->setMargin( 0 );
     leftLayout->setSpacing( 0 );
     leftWidget->setLayout( leftLayout );
@@ -140,19 +146,19 @@ void TimeLine::initUI()
     keyButtons->addWidget( duplicateKeyButton );
 
     // --------- Time controls ---------
-    timeControls = new TimeControls( this );
+    mTimeControls = new TimeControls( this );
 
     QHBoxLayout* rightToolBarLayout = new QHBoxLayout();
     rightToolBarLayout->addWidget( keyButtons );
     rightToolBarLayout->addStretch( 1 );
-    rightToolBarLayout->addWidget( timeControls );
+    rightToolBarLayout->addWidget( mTimeControls );
     rightToolBarLayout->setMargin( 0 );
     rightToolBarLayout->setSpacing( 0 );
     rightToolBar->setLayout( rightToolBarLayout );
 
     QGridLayout* rightLayout = new QGridLayout();
     rightLayout->addWidget( rightToolBar, 0, 0 );
-    rightLayout->addWidget( cells, 1, 0 );
+    rightLayout->addWidget( mTracks, 1, 0 );
     rightLayout->setMargin( 0 );
     rightLayout->setSpacing( 0 );
     rightWidget->setLayout( rightLayout );
@@ -174,54 +180,49 @@ void TimeLine::initUI()
     setWidget( timeLineContent );
 
     setWindowFlags( Qt::WindowStaysOnTopHint );
-    setWindowTitle( "Timeline" );
 
-    connect( this, SIGNAL( lengthChange( QString ) ), cells, SLOT( lengthChange( QString ) ) );
-    connect( this, SIGNAL( fontSizeChange( int ) ), cells, SLOT( fontSizeChange( int ) ) );
-    connect( this, SIGNAL( frameSizeChange( int ) ), cells, SLOT( frameSizeChange( int ) ) );
-    connect( this, SIGNAL( labelChange( int ) ), cells, SLOT( labelChange( int ) ) );
-    connect( this, SIGNAL( scrubChange( int ) ), cells, SLOT( scrubChange( int ) ) );
+    connect( this, &TimeLine::lengthChange, mTracks, &TimeLineCells::lengthChange );
+    connect( this, &TimeLine::fontSizeChange, mTracks, &TimeLineCells::fontSizeChange );
+    connect( this, &TimeLine::frameSizeChange, mTracks, &TimeLineCells::frameSizeChange );
+    connect( this, &TimeLine::labelChange, mTracks, &TimeLineCells::labelChange );
+    connect( this, &TimeLine::scrubChange, mTracks, &TimeLineCells::scrubChange );
 
-    connect( hScrollBar, SIGNAL( valueChanged( int ) ), cells, SLOT( hScrollChange( int ) ) );
-    connect( vScrollBar, SIGNAL( valueChanged( int ) ), cells, SLOT( vScrollChange( int ) ) );
-    connect( vScrollBar, SIGNAL( valueChanged( int ) ), list, SLOT( vScrollChange( int ) ) );
+    connect( hScrollBar, &QScrollBar::valueChanged, mTracks, &TimeLineCells::hScrollChange );
+    connect( vScrollBar, &QScrollBar::valueChanged, mTracks, &TimeLineCells::vScrollChange );
+    connect( vScrollBar, &QScrollBar::valueChanged, mLayerList, &TimeLineCells::vScrollChange );
 
-    connect( addKeyButton, SIGNAL( clicked() ), this, SIGNAL( addKeyClick() ) );
-    connect( removeKeyButton, SIGNAL( clicked() ), this, SIGNAL( removeKeyClick() ) );
-    connect( duplicateKeyButton, SIGNAL( clicked() ), this, SIGNAL( duplicateKeyClick() ) );
+    connect( addKeyButton,    &QToolButton::clicked, this, &TimeLine::addKeyClick );
+    connect( removeKeyButton, &QToolButton::clicked, this, &TimeLine::removeKeyClick );
+    connect( duplicateKeyButton, &QToolButton::clicked, this, &TimeLine::duplicateKeyClick );
 
-    connect( timeControls, SIGNAL( playClick() ), this, SIGNAL( playClick() ) );
-    connect( timeControls, SIGNAL( endClick() ), this, SIGNAL( endplayClick() ) );
-    connect( timeControls, SIGNAL( startClick() ), this, SIGNAL( startplayClick() ) );
-    connect( timeControls, SIGNAL( loopClick( bool ) ), this, SIGNAL( loopClick( bool ) ) );
+    connect( mTimeControls, SIGNAL( loopStartClick( int ) ), this, SIGNAL( loopStartClick( int ) ) );
+    connect( mTimeControls, SIGNAL( loopEndClick( int ) ), this, SIGNAL( loopEndClick( int ) ) );
 
-    connect( timeControls, SIGNAL( loopControlClick( bool ) ), this, SIGNAL( loopControlClick( bool ) ) );//adding loopControl
-    connect( timeControls, SIGNAL( loopStartClick( int ) ), this, SIGNAL( loopStartClick( int ) ) );
-    connect( timeControls, SIGNAL( loopEndClick( int ) ), this, SIGNAL( loopEndClick( int ) ) );
+    connect( mTimeControls, SIGNAL( soundClick( bool ) ), this, SIGNAL( soundClick( bool ) ) );
+    connect( mTimeControls, SIGNAL( fpsClick( int ) ), this, SIGNAL( fpsClick( int ) ) );
 
-    connect( timeControls, SIGNAL( soundClick( bool ) ), this, SIGNAL( soundClick( bool ) ) );
-    connect( timeControls, SIGNAL( fpsClick( int ) ), this, SIGNAL( fpsClick( int ) ) );
-
-    connect( this, &TimeLine::loopToggled, timeControls, &TimeControls::loopToggled );
-    connect( this, &TimeLine::loopControlClick, timeControls, &TimeControls::toggleLoopControl );
-
-    connect( newBitmapLayerAct, SIGNAL( triggered() ), this, SIGNAL( newBitmapLayer() ) );
-    connect( newVectorLayerAct, SIGNAL( triggered() ), this, SIGNAL( newVectorLayer() ) );
-    connect( newSoundLayerAct, SIGNAL( triggered() ), this, SIGNAL( newSoundLayer() ) );
-    connect( newCameraLayerAct, SIGNAL( triggered() ), this, SIGNAL( newCameraLayer() ) );
-    connect( removeLayerButton, SIGNAL( clicked() ), this, SIGNAL( deleteCurrentLayer() ) );
+    connect( newBitmapLayerAct, &QAction::triggered, this, &TimeLine::newBitmapLayer );
+    connect( newVectorLayerAct, &QAction::triggered, this, &TimeLine::newVectorLayer );
+    connect( newSoundLayerAct, &QAction::triggered, this, &TimeLine::newSoundLayer );
+    connect( newCameraLayerAct, &QAction::triggered, this, &TimeLine::newCameraLayer );
+    connect( removeLayerButton, &QPushButton::clicked, this, &TimeLine::deleteCurrentLayer );
+    
+    mTimeControls->setCore( editor() );
 
     scrubbing = false;
 }
 
 void TimeLine::updateUI()
 {
+    mTracks->update();
+    mLayerList->update();
+
 
 }
 
 int TimeLine::getFrameLength()
 {
-    return cells->getFrameLength();
+    return mTracks->getFrameLength();
 }
 
 void TimeLine::resizeEvent(QResizeEvent*)
@@ -229,28 +230,43 @@ void TimeLine::resizeEvent(QResizeEvent*)
     updateLayerView();
 }
 
-void TimeLine::updateFrame(int frameNumber)
+void TimeLine::deleteCurrentLayer()
 {
-    if ( cells )
+    QString strLayerName = editor()->layers()->currentLayer()->name();
+
+    int ret = QMessageBox::warning( this,
+                                    tr( "Warning" ),
+                                    tr( "Are you sure you want to delete layer: " ) + strLayerName + " ?",
+                                    QMessageBox::Ok | QMessageBox::Cancel,
+                                    QMessageBox::Ok );
+    if ( ret == QMessageBox::Ok )
     {
-        cells->updateFrame( m_lastUpdatedFrame );
-        cells->updateFrame( frameNumber );
+        editor()->layers()->deleteCurrentLayer();
     }
-    m_lastUpdatedFrame = frameNumber;
+}
+
+void TimeLine::updateFrame( int frameNumber )
+{
+    Q_ASSERT ( mTracks );
+
+    mTracks->updateFrame( mLastUpdatedFrame );
+    mTracks->updateFrame( frameNumber );
+
+    mLastUpdatedFrame = frameNumber;
 }
 
 void TimeLine::updateLayerView()
 {
-    vScrollBar->setPageStep( (height()-cells->getOffsetY()-hScrollBar->height())/cells->getLayerHeight() -2 );
+    vScrollBar->setPageStep( (height()-mTracks->getOffsetY()-hScrollBar->height())/mTracks->getLayerHeight() -2 );
     vScrollBar->setMinimum( 0 );
-    vScrollBar->setMaximum( qMax(0, numberOfLayers - vScrollBar->pageStep()) );
+    vScrollBar->setMaximum( qMax(0, mNumLayers - vScrollBar->pageStep()) );
     update();
     updateContent();
 }
 
 void TimeLine::updateLayerNumber(int numberOfLayers)
 {
-    this->numberOfLayers = numberOfLayers;
+    this->mNumLayers = numberOfLayers;
     updateLayerView();
 }
 
@@ -261,14 +277,14 @@ void TimeLine::updateLength(int frameLength)
 
 void TimeLine::updateContent()
 {
-    list->updateContent();
-    cells->updateContent();
+    mLayerList->updateContent();
+    mTracks->updateContent();
     update();
 }
 
 void TimeLine::setFps ( int value )
 {
-    timeControls->setFps(value);
+    mTimeControls->setFps(value);
 }
 
 void TimeLine::forceUpdateLength(QString newLength)
@@ -284,5 +300,3 @@ void TimeLine::forceUpdateLength(QString newLength)
         settings.setValue("length", dec);
     }
 }
-
-

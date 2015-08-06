@@ -2,6 +2,7 @@
 
 Pencil - Traditional Animation Software
 Copyright (C) 2005-2007 Patrick Corrieri & Pascal Naidon
+Copyright (C) 2013-2014 Matt Chiawen Chang
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -26,10 +27,11 @@ class TimeLineCells;
 
 class TimeLine : public BaseDockWidget
 {
-	Q_OBJECT
+    Q_OBJECT
+
 public:
     TimeLine( QWidget* parent );
-    
+
     void initUI() override;
     void updateUI() override;
 
@@ -42,52 +44,47 @@ public:
     void setFps( int );
     int getFrameLength();
 
-signals :
-	void modification();
-	void lengthChange( QString );
-	void frameSizeChange( int );
-	void fontSizeChange( int );
-	void labelChange( int );
-	void scrubChange( int );
-	void addKeyClick();
-	void removeKeyClick();
-	void duplicateKeyClick();
-	void newBitmapLayer();
-	void newVectorLayer();
-	void newSoundLayer();
-	void newCameraLayer();
-	void deleteCurrentLayer();
+Q_SIGNALS:
+    void modification();
+    void lengthChange( QString );
+    void frameSizeChange( int );
+    void fontSizeChange( int );
+    void labelChange( int );
+    void scrubChange( int );
 
-	void playClick();
-	void loopClick( bool );
-    void loopToggled( bool );
+    void addKeyClick();
+    void removeKeyClick();
+    void duplicateKeyClick();
+    void newBitmapLayer();
+    void newVectorLayer();
+    void newSoundLayer();
+    void newCameraLayer();
 
-    void loopControlClick( bool );
     void loopStartClick(int);
     void loopEndClick(int);
 
-	void soundClick( bool );
-	void endplayClick();
-	void startplayClick();
-	void fpsClick( int );
-	void onionPrevClick();
-	void onionNextClick();
+    void soundClick( bool );
+    void fpsClick( int );
+    void onionPrevClick();
+    void onionNextClick();
 
 public:
     bool scrubbing;
 
 protected:
-	void resizeEvent( QResizeEvent* event );
+    void resizeEvent( QResizeEvent* event ) override;
 
 private:
-    QScrollBar* hScrollBar;
-    QScrollBar* vScrollBar;
-	TimeLineCells* cells;
-	TimeLineCells* list;
-	int numberOfLayers;
-	TimeControls* timeControls;
+    void deleteCurrentLayer();
 
-    int m_lastUpdatedFrame = 0;
+    QScrollBar* hScrollBar = nullptr;
+    QScrollBar* vScrollBar = nullptr;
+    TimeLineCells* mTracks = nullptr;
+    TimeLineCells* mLayerList = nullptr;
+    TimeControls* mTimeControls = nullptr;
+
+    int mNumLayers = 0;
+    int mLastUpdatedFrame = 0;
 };
 
 #endif

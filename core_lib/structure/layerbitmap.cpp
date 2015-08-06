@@ -19,10 +19,10 @@ GNU General Public License for more details.
 #include "layerbitmap.h"
 
 
-LayerBitmap::LayerBitmap( Object* object ) : LayerImage( object, Layer::BITMAP )
+LayerBitmap::LayerBitmap( Object* object ) : Layer( object, Layer::BITMAP )
 {
-    name = QString( tr( "Bitmap Layer" ) );
-    addNewKeyFrameAt( 1 );
+    mName = QString( tr( "Bitmap Layer" ) );
+    addNewKeyAt( 1 );
 }
 
 LayerBitmap::~LayerBitmap()
@@ -39,7 +39,7 @@ BitmapImage* LayerBitmap::getLastBitmapImageAtFrame( int frameNumber, int increm
     return static_cast< BitmapImage* >( getLastKeyFrameAtPosition( frameNumber + increment ) );
 }
 
-bool LayerBitmap::addNewKeyFrameAt( int frameNumber )
+bool LayerBitmap::addNewKeyAt( int frameNumber )
 {
     if ( frameNumber <= 0 )
     {
@@ -50,13 +50,9 @@ bool LayerBitmap::addNewKeyFrameAt( int frameNumber )
 
 void LayerBitmap::loadImageAtFrame( QString path, QPoint topLeft, int frameNumber )
 {
-    if ( hasKeyFrameAtPosition( frameNumber ) )
-    {
-        removeKeyFrame( frameNumber );
-    }
-    auto pImg = new BitmapImage( path, topLeft );
-    pImg->setPos( frameNumber );
-    addKeyFrame( frameNumber, pImg );
+    BitmapImage* pKeyFrame = new BitmapImage( path, topLeft );
+    pKeyFrame->setPos( frameNumber );
+    loadKey( pKeyFrame );
 }
 
 bool LayerBitmap::saveKeyFrame( KeyFrame* pKeyFrame, QString path )
@@ -65,14 +61,14 @@ bool LayerBitmap::saveKeyFrame( KeyFrame* pKeyFrame, QString path )
 
     QString theFileName = fileName( pKeyFrame->pos() );
     QString strFilePath = QDir( path ).filePath( theFileName );
-    pBitmapImage->m_pImage->save( strFilePath );
+    pBitmapImage->image()->save( strFilePath );
 
     return true;
 }
 
 QString LayerBitmap::fileName( int frame )
 {
-    int layerID = id;
+    int layerID = mId;
     QString layerNumberString = QString::number( layerID );
     QString frameNumberString = QString::number( frame );
     while ( layerNumberString.length() < 3 ) layerNumberString.prepend( "0" );
@@ -83,8 +79,8 @@ QString LayerBitmap::fileName( int frame )
 QDomElement LayerBitmap::createDomElement( QDomDocument& doc )
 {
     QDomElement layerTag = doc.createElement( "layer" );
-    layerTag.setAttribute( "id", id );
-    layerTag.setAttribute( "name", name );
+    layerTag.setAttribute( "id", mId );
+    layerTag.setAttribute( "name", mName );
     layerTag.setAttribute( "visibility", visible );
     layerTag.setAttribute( "type", type() );
 
@@ -107,9 +103,9 @@ void LayerBitmap::loadDomElement( QDomElement element, QString dataDirPath )
 {
     if ( !element.attribute( "id" ).isNull() )
     {
-        id = element.attribute( "id" ).toInt();
+        mId = element.attribute( "id" ).toInt();
     }
-    name = element.attribute( "name" );
+    mName = element.attribute( "name" );
     visible = ( element.attribute( "visibility" ) == "1" );
 
     QDomNode imageTag = element.firstChild();

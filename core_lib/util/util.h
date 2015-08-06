@@ -3,28 +3,19 @@
 
 #include <cstddef>
 #include <functional>
+#include <QTransform>
 
-// for QObject
-template<typename T>
-void SafeDelete( T*& p )
-{
-    p->deleteLater();
-    p = NULL;
-}
+
+#define SAFE_RELEASE( p ) if ( p ) { delete p; p = nullptr; }
+#define SAFE_QT_RELEASE( p ) if ( p ) { p->deleteLater(); p = nullptr; }
+
+QTransform RectMapTransform( QRectF source, QRectF target );
 
 class ScopeGuard
 {
 public:
-    ScopeGuard( std::function< void() > onScopeExit )
-    {
-        m_onScopeExit = onScopeExit;
-    }
-
-    ~ScopeGuard()
-    {
-        m_onScopeExit();
-    }
-
+    ScopeGuard( std::function< void() > onScopeExit ) { m_onScopeExit = onScopeExit; }
+    ~ScopeGuard() { m_onScopeExit(); }
 private:
     std::function< void() > m_onScopeExit;
 };
@@ -32,6 +23,6 @@ private:
 #define SCOPEGUARD_LINENAME_CAT(name, line) name##line
 #define SCOPEGUARD_LINENAME(name, line) SCOPEGUARD_LINENAME_CAT(name, line)
 
-#define RLOnScopeExit( callback ) ScopeGuard SCOPEGUARD_LINENAME( myScopeGuard, __LINE__ ) ( [&] { callback; } );
+#define OnScopeExit( callback ) ScopeGuard SCOPEGUARD_LINENAME( myScopeGuard, __LINE__ ) ( [&] { callback; } );
 
 #endif // UTIL_H

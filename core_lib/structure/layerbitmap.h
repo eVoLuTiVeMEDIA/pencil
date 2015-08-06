@@ -23,7 +23,7 @@ GNU General Public License for more details.
 
 class BitmapImage;
 
-class LayerBitmap : public LayerImage
+class LayerBitmap : public Layer
 {
     Q_OBJECT
 
@@ -32,7 +32,7 @@ public:
     ~LayerBitmap();
 
     // method from layerImage
-    bool addNewKeyFrameAt( int frameNumber ) override;
+    bool addNewKeyAt( int frameNumber ) override;
     void loadImageAtFrame( QString strFilePath, QPoint topLeft, int frameNumber );
 
     QDomElement createDomElement( QDomDocument& doc ) override;

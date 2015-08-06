@@ -24,7 +24,6 @@ GNU General Public License for more details.
 #include <QProgressDialog>
 #include "object.h"
 #include "editor.h"
-#include "mainwindow2.h"
 #include "layersound.h"
 
 #define MIN(a,b) ((a)>(b)?(b):(a))
@@ -63,7 +62,7 @@ bool Object::exportMovie( ExportMovieParameters parameters )
 {
     int startFrame = parameters.startFrame;
     int endFrame = parameters.endFrame;
-    QMatrix view = parameters.view;
+    QTransform view = parameters.view;
     Layer* currentLayer = parameters.currentLayer;
     QSize exportSize = parameters.exportSize;
     QString filePath = parameters.filePath;
@@ -99,7 +98,7 @@ bool Object::exportMovie( ExportMovieParameters parameters )
     const char* format = "png";
 
     ExportFrames1Parameters par;
-    
+
     par.frameStart = startFrame;
     par.frameEnd = endFrame;
     par.view = view;

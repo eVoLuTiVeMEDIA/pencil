@@ -16,18 +16,18 @@ public:
 
     // Layer Management
     Layer* currentLayer();
-    Layer* currentLayer( int incr );
-    int currentLayerIndex();
-    void setCurrentLayer( int );
-    int count();
+    Layer* currentLayer( int offset );
+    int    currentLayerIndex();
+    void   setCurrentLayer( int );
+    int    count();
+
+    bool   deleteCurrentLayer();
 
     void gotoNextLayer();
     void gotoPreviouslayer();
 
     // KeyFrame Management
     int  LastFrameAtFrame( int frameIndex );
-    int  currentFramePosition();
-    void setCurrentKeyFrame( int );
     int  firstKeyFrameIndex();
     int  lastKeyFrameIndex();
 
@@ -36,13 +36,12 @@ public:
 
     int  projectLength();
 
-signals:
-    void currentKeyFrameChanged( int n );
+Q_SIGNALS:
     void currentLayerChanged( int n );
+    void layerCountChanged( int count );
 
 private:
-    int m_currentLayerIndex; // the current layer to be edited/displayed
-    int m_currentFrameIndex; // the current key frame to be edited/displayed
+    int mCurrentLayerIndex = 0; // the current layer to be edited/displayed
 };
 
 #endif

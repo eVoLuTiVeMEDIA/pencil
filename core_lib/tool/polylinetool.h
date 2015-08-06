@@ -9,24 +9,23 @@ class PolylineTool : public BaseTool
 {
     Q_OBJECT
 public:
-    explicit PolylineTool(QObject *parent = 0);
-    ToolType type();
-    void loadSettings();
-    QCursor cursor();
+    explicit PolylineTool( QObject *parent = 0 );
+    ToolType type() override;
+    void loadSettings() override;
+    QCursor cursor() override;
 
-    void mousePressEvent(QMouseEvent *);
-    void mouseReleaseEvent(QMouseEvent *);
-    void mouseMoveEvent(QMouseEvent *);
-    void mouseDoubleClickEvent(QMouseEvent *);
-    bool keyPressEvent(QKeyEvent *event);
+    void mousePressEvent( QMouseEvent* ) override;
+    void mouseReleaseEvent( QMouseEvent* ) override;
+    void mouseMoveEvent( QMouseEvent* ) override;
+    void mouseDoubleClickEvent( QMouseEvent* ) override;
+    bool keyPressEvent( QKeyEvent* event );
 
     void clear();
 
-signals:
-    
-public slots:
-    
-protected:
+    void setWidth( const qreal width );
+    void setFeather( const qreal feather );
+
+private:
     QList<QPointF> points;
 };
 

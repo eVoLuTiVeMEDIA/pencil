@@ -1,30 +1,37 @@
 #ifndef PENCILERROR_H
 #define PENCILERROR_H
 
-#include <QObject>
+#include <QString>
 
-enum PencilErrorCode
+
+enum ErrorCode
 {
     PCL_OK = 0,
-
+    PCL_FAIL,
+    
     // for Object loading
-    PCL_ERROR_FILE_NOT_EXIST,
-    PCL_ERROR_FILE_CANNOT_OPEN,
-    PCL_ERROR_INVALID_XML_FILE,
-    PCL_ERROR_INVALID_PENCIL_FILE
+    ERROR_FILE_NOT_EXIST,
+    ERROR_FILE_CANNOT_OPEN,
+    ERROR_INVALID_XML_FILE,
+    ERROR_INVALID_PENCIL_FILE,
+
+    //
+    ERROR_INVALID_LAYER_TYPE,
+    ERROR_LOAD_IMAGE_FAIL,
 };
 
 
-class PencilError
+class Error
 {
 public:
-    PencilError() { m_eCode = PCL_OK; }
-    PencilError( PencilErrorCode eCode ) { m_eCode = eCode; }
-    PencilErrorCode code() { return m_eCode; }
+    Error() { mCode = PCL_OK; }
+    Error( ErrorCode eCode ) { mCode = eCode; }
+    ErrorCode code() { return mCode; }
+
     QString msg();
 
 private:
-    PencilErrorCode m_eCode;
+    ErrorCode mCode;
 };
 
 #endif // PENCILERROR_H

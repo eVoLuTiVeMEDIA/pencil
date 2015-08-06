@@ -28,48 +28,38 @@ Layer* LayerManager::currentLayer( int incr )
 {
     Q_ASSERT( editor()->object() != NULL );
 
-    return editor()->object()->getLayer( m_currentLayerIndex + incr );
+    return editor()->object()->getLayer( mCurrentLayerIndex + incr );
 }
 
 int LayerManager::currentLayerIndex()
 {
-    return m_currentLayerIndex;
+    return mCurrentLayerIndex;
 }
 
 void LayerManager::setCurrentLayer( int layerIndex )
 {
-    m_currentLayerIndex = layerIndex;
+	if ( mCurrentLayerIndex != layerIndex )
+	{
+		mCurrentLayerIndex = layerIndex;
+		Q_EMIT currentLayerChanged( mCurrentLayerIndex );
+	}
 }
 
 void LayerManager::gotoNextLayer()
 {
-    if ( m_currentLayerIndex < editor()->object()->getLayerCount() - 1 )
+    if ( mCurrentLayerIndex < editor()->object()->getLayerCount() - 1 )
     {
-        m_currentLayerIndex += 1;
+        mCurrentLayerIndex += 1;
+		emit currentLayerChanged( mCurrentLayerIndex );
     }
 }
 
 void LayerManager::gotoPreviouslayer()
 {
-    if ( m_currentLayerIndex > 0 )
+    if ( mCurrentLayerIndex > 0 )
     {
-        m_currentLayerIndex -= 1;
-    }
-}
-
-
-// Key frame management
-int LayerManager::currentFramePosition()
-{
-    return m_currentFrameIndex;
-}
-
-void LayerManager::setCurrentKeyFrame( int frame )
-{
-    if ( frame != m_currentFrameIndex )
-    {
-        m_currentFrameIndex = frame;
-        emit currentKeyFrameChanged( frame );
+        mCurrentLayerIndex -= 1;
+		emit currentLayerChanged( mCurrentLayerIndex );
     }
 }
 
@@ -80,8 +70,8 @@ int LayerManager::LastFrameAtFrame( int frameIndex )
     {
         for ( int layerIndex = 0; layerIndex < pObj->getLayerCount(); ++layerIndex )
         {
-            auto pLayer = static_cast<LayerImage*>( pObj->getLayer( layerIndex ) );
-            if ( pLayer->hasKeyFrameAtPosition( i ) )
+            auto pLayer = pObj->getLayer( layerIndex );
+            if ( pLayer->keyExists( i ) )
             {
                 return i;
             }
@@ -99,7 +89,7 @@ int LayerManager::firstKeyFrameIndex()
     {
         Layer* pLayer = pObj->getLayer( i );
 
-        int position = pLayer->getFirstKeyFramePosition();
+        int position = pLayer->firstKeyFramePosition();
         if ( position < minPosition )
         {
             minPosition = position;
@@ -130,6 +120,25 @@ int LayerManager::count()
     return editor()->object()->getLayerCount();
 }
 
+bool LayerManager::deleteCurrentLayer()
+{
+    if ( currentLayer()->type() == Layer::CAMERA )
+    {
+        return false;
+    }
+
+    editor()->object()->deleteLayer( currentLayerIndex() );
+
+    if ( currentLayerIndex() == editor()->object()->getLayerCount() )
+    {
+        setCurrentLayer( currentLayerIndex() - 1 );
+    }
+    emit editor()->updateAllFrames();
+    emit layerCountChanged( count() );
+
+    return true;
+}
+
 int LayerManager::projectLength()
 {
     int maxFrame = -1;
@@ -149,11 +158,11 @@ int LayerManager::projectLength()
 void LayerManager::gotoLastKeyFrame()
 {
     int nFrame = lastKeyFrameIndex();
-    setCurrentKeyFrame( nFrame );
+    editor()->scrubTo( nFrame );
 }
 
 void LayerManager::gotoFirstKeyFrame()
 {
     int nFrame = firstKeyFrameIndex();
-    setCurrentKeyFrame( nFrame );
+    editor()->scrubTo( nFrame );
 }

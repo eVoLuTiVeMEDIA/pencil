@@ -10,8 +10,8 @@
 #include "layerbitmap.h"
 
 
-PolylineTool::PolylineTool(QObject *parent) :
-    BaseTool(parent)
+PolylineTool::PolylineTool( QObject *parent ) :
+BaseTool( parent )
 {
 }
 
@@ -22,26 +22,46 @@ ToolType PolylineTool::type()
 
 void PolylineTool::loadSettings()
 {
-    QSettings settings("Pencil","Pencil");
+    m_enabledProperties[WIDTH] = true;
 
-    properties.width = settings.value("polyLineWidth").toDouble();
+
+
+    QSettings settings( "Pencil", "Pencil" );
+
+    properties.width = settings.value( "polyLineWidth" ).toDouble();
     properties.feather = -1;
-    properties.pressure = ON;
+    properties.pressure = 0;
     properties.invisibility = OFF;
     properties.preserveAlpha = OFF;
 
+    // First run
     if ( properties.width <= 0 )
     {
-        properties.width = 1.5;
-        settings.setValue("polyLineWidth", properties.width);
+        setWidth(1.5);
     }
+}
+
+void PolylineTool::setWidth(const qreal width)
+{
+    // Set current property
+    properties.width = width;
+
+    // Update settings
+    QSettings settings( "Pencil", "Pencil" );
+    settings.setValue("polyLineWidth", width);
+    settings.sync();
+}
+
+void PolylineTool::setFeather( const qreal feather )
+{
+    properties.feather = -1;
 }
 
 QCursor PolylineTool::cursor() //Not working this one, any guru to fix it?
 {
-    if (isAdjusting) { // being dynamically resized
-         return QCursor(this->circleCursors()); // two circles cursor
-         qDebug() << "adjusting";
+    if ( isAdjusting ) { // being dynamically resized
+        return QCursor( this->circleCursors() ); // two circles cursor
+        qDebug() << "adjusting";
     }
     return Qt::CrossCursor;
 }
@@ -51,73 +71,73 @@ void PolylineTool::clear()
     points.clear();
 }
 
-void PolylineTool::mousePressEvent(QMouseEvent *event)
+void PolylineTool::mousePressEvent( QMouseEvent *event )
 {
-    Layer *layer = m_pEditor->getCurrentLayer();
+    Layer* layer = mEditor->layers()->currentLayer();
 
-    if (event->button() == Qt::LeftButton)
+    if ( event->button() == Qt::LeftButton )
     {
-        if (layer->type() == Layer::BITMAP || layer->type() == Layer::VECTOR)
+        if ( layer->type() == Layer::BITMAP || layer->type() == Layer::VECTOR )
         {
-            if (points.size() == 0)
+            if ( points.size() == 0 )
             {
-                m_pEditor->backup(tr("Line"));
+                mEditor->backup( tr( "Line" ) );
             }
 
-            if (layer->type() == Layer::VECTOR)
+            if ( layer->type() == Layer::VECTOR )
             {
-                ((LayerVector *)layer)->getLastVectorImageAtFrame(m_pEditor->layers()->currentFramePosition(), 0)->deselectAll();
-                if (m_pScribbleArea->makeInvisible() && !m_pScribbleArea->showThinLines())
+                ( ( LayerVector * )layer )->getLastVectorImageAtFrame( mEditor->currentFrame(), 0 )->deselectAll();
+                if ( mScribbleArea->makeInvisible() && !mScribbleArea->showThinLines() )
                 {
-                    m_pScribbleArea->toggleThinLines();
+                    mScribbleArea->toggleThinLines();
                 }
             }
             points << getCurrentPoint();
-            m_pScribbleArea->setAllDirty();
+            mScribbleArea->setAllDirty();
         }
     }
 }
 
-void PolylineTool::mouseReleaseEvent(QMouseEvent *event)
+void PolylineTool::mouseReleaseEvent( QMouseEvent *event )
 {
-    Q_UNUSED(event);
+    Q_UNUSED( event );
 }
 
-void PolylineTool::mouseMoveEvent(QMouseEvent *event)
+void PolylineTool::mouseMoveEvent( QMouseEvent *event )
 {
-    Q_UNUSED(event);
-    Layer *layer = m_pEditor->getCurrentLayer();
+    Q_UNUSED( event );
+    Layer* layer = mEditor->layers()->currentLayer();
 
-    if (layer->type() == Layer::BITMAP || layer->type() == Layer::VECTOR)
+    if ( layer->type() == Layer::BITMAP || layer->type() == Layer::VECTOR )
     {
-        m_pScribbleArea->drawPolyline(points, getCurrentPoint());
+        mScribbleArea->drawPolyline( points, getCurrentPoint() );
     }
 }
 
-void PolylineTool::mouseDoubleClickEvent(QMouseEvent *event)
+void PolylineTool::mouseDoubleClickEvent( QMouseEvent *event )
 {
     // XXX highres position ??
-    if (BezierCurve::eLength(m_pStrokeManager->getLastPressPixel() - event->pos()) < 2.0)
+    if ( BezierCurve::eLength( m_pStrokeManager->getLastPressPixel() - event->pos() ) < 2.0 )
     {
-        m_pScribbleArea->endPolyline(points);
+        mScribbleArea->endPolyline( points );
         clear();
     }
 }
 
-bool PolylineTool::keyPressEvent(QKeyEvent *event)
+bool PolylineTool::keyPressEvent( QKeyEvent *event )
 {
-    switch (event->key()) {
+    switch ( event->key() ) {
     case Qt::Key_Return:
-        if (points.size() > 0 )
+        if ( points.size() > 0 )
         {
-            m_pScribbleArea->endPolyline(points);
+            mScribbleArea->endPolyline( points );
             clear();
             return true;
         }
         break;
 
     case Qt::Key_Escape:
-        if (points.size() > 0) {
+        if ( points.size() > 0 ) {
             clear();
             return true;
         }

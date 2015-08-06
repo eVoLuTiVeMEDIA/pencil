@@ -16,24 +16,6 @@ RESOURCES += ../pencil.qrc
 MOC_DIR = .moc
 OBJECTS_DIR = .obj
 
-# i18n
-TRANSLATIONS += ../pencil.ts \
-                ../pencil2d_it.ts \
-                ../pencil2d_cs.ts
-
-isEmpty(QMAKE_LRELEASE) {
-    win32:QMAKE_LRELEASE = $$[QT_INSTALL_BINS]\lrelease.exe
-    else:QMAKE_LRELEASE = $$[QT_INSTALL_BINS]/lrelease
-}
-updateqm.input = TRANSLATIONS
-updateqm.output = ${QMAKE_FILE_PATH}/${QMAKE_FILE_BASE}.qm
-isEmpty(vcproj):updateqm.variable_out = PRE_TARGETDEPS
-updateqm.commands = $$QMAKE_LRELEASE ${QMAKE_FILE_IN} -qm ${QMAKE_FILE_PATH}/${QMAKE_FILE_BASE}.qm
-updateqm.CONFIG += no_link
-QMAKE_EXTRA_COMPILERS += updateqm
-PRE_TARGETDEPS += compiler_updateqm_make_all
-
-
 INCLUDEPATH += \
     graphics \
     graphics/bitmap \
@@ -65,7 +47,6 @@ HEADERS +=  \
     interface/editor.h \
     interface/flowlayout.h \
     interface/keycapturelineedit.h \
-    interface/mainwindow2.h \
     interface/popupcolorpalettewidget.h \
     interface/preferences.h \
     interface/recentfilemenu.h \
@@ -81,6 +62,8 @@ HEADERS +=  \
     managers/colormanager.h \
     managers/layermanager.h \
     managers/toolmanager.h \
+    managers/playbackmanager.h \
+    managers/viewmanager.h \
     structure/camera.h \
     structure/keyframe.h \
     structure/layer.h \
@@ -112,7 +95,9 @@ HEADERS +=  \
     util/pencilsettings.h \
     util/util.h \
     interface/basedockwidget.h \
-    managers/playbackmanager.h
+    util/log.h \
+    interface/preview.h
+
 
 SOURCES +=  graphics/bitmap/bitmapimage.cpp \
     graphics/vector/bezierarea.cpp \
@@ -132,7 +117,6 @@ SOURCES +=  graphics/bitmap/bitmapimage.cpp \
     interface/editor.cpp \
     interface/flowlayout.cpp \
     interface/keycapturelineedit.cpp \
-    interface/mainwindow2.cpp \
     interface/popupcolorpalettewidget.cpp \
     interface/preferences.cpp \
     interface/recentfilemenu.cpp \
@@ -177,10 +161,12 @@ SOURCES +=  graphics/bitmap/bitmapimage.cpp \
     util/pencilerror.cpp \
     util/pencilsettings.cpp \
     interface/basedockwidget.cpp \
-    managers/playbackmanager.cpp
+    managers/playbackmanager.cpp \
+    managers/viewmanager.cpp \
+    util/util.cpp \
+    interface/preview.cpp
 
 FORMS += \
-    interface/mainwindow2.ui \
     interface/shortcutspage.ui \
     interface/colorinspector.ui \
     interface/colorpalette.ui
@@ -196,7 +182,7 @@ macx {
     SOURCES += external/macosx/macosx.cpp
 }
 
-linux-* {
+unix:!macx {
     INCLUDEPATH += external/linux
     SOURCES += external/linux/linux.cpp
 }

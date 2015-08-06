@@ -19,9 +19,9 @@ GNU General Public License for more details.
 #include "layersound.h"
 
 
-LayerSound::LayerSound(Object* object) : LayerImage(object, Layer::SOUND)
+LayerSound::LayerSound(Object* object) : Layer(object, Layer::SOUND)
 {
-    name = QString(tr("Sound Layer"));
+    mName = QString(tr("Sound Layer"));
 }
 
 LayerSound::~LayerSound()
@@ -58,7 +58,7 @@ void LayerSound::paintImages(QPainter& painter, TimeLineCells* cells, int x, int
     */
 }
 
-bool LayerSound::addNewKeyFrameAt(int frameNumber)
+bool LayerSound::addNewKeyAt(int frameNumber)
 {
     return addKeyFrame( frameNumber, new SoundClip );
 }

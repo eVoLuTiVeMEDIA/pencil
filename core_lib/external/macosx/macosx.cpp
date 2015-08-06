@@ -20,7 +20,6 @@ GNU General Public License for more details.
 #include <QProgressDialog>
 #include "object.h"
 #include "editor.h"
-#include "mainwindow2.h"
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <Carbon/Carbon.h>
@@ -34,18 +33,16 @@ SetMouseCoalescingEnabled(
 }
 
 extern "C" {
-void disableCoalescing() {
+void disableCoalescing()
+{
     SetMouseCoalescingEnabled(false, NULL);
 }
 
 
-void enableCoalescing() {
+void enableCoalescing()
+{
     SetMouseCoalescingEnabled(true, NULL);
 }
-}
-
-void initialise()
-{
 }
 
 bool Object::exportMovie( ExportMovieParameters parameters )

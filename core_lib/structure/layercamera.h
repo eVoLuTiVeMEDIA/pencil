@@ -46,7 +46,7 @@ protected:
     QSpinBox* widthBox, *heightBox;
 };
 
-class LayerCamera : public LayerImage
+class LayerCamera : public Layer
 {
     Q_OBJECT
 
@@ -57,9 +57,9 @@ public:
 
     // method from layerImage
     QImage* getImageAtIndex(int index);
-    bool addNewKeyFrameAt( int frameNumber ) override;
+    bool addNewKeyAt( int frameNumber ) override;
 
-    void loadImageAtFrame(int, QMatrix);
+    void loadImageAtFrame(int, QTransform);
     
     void editProperties();
     QDomElement createDomElement(QDomDocument& doc);
@@ -67,7 +67,7 @@ public:
 
     Camera* getCameraAtFrame(int frameNumber);
     Camera* getLastCameraAtFrame(int frameNumber, int increment);
-    QMatrix getViewAtFrame(int frameNumber);
+    QTransform getViewAtFrame(int frameNumber);
 
     QRect getViewRect();
 

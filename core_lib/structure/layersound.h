@@ -38,7 +38,7 @@ public:
 };
 
 
-class LayerSound : public LayerImage
+class LayerSound : public Layer
 {
     Q_OBJECT
 
@@ -48,7 +48,7 @@ public:
     QDomElement createDomElement(QDomDocument& doc);
     void loadDomElement(QDomElement element, QString dataDirPath);
 
-    bool addNewKeyFrameAt( int frameNumber ) override;
+    bool addNewKeyAt( int frameNumber ) override;
 
     void loadSoundAtFrame( QString filePathString, int frame );
 

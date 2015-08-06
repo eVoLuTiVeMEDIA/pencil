@@ -1,7 +1,13 @@
 #ifndef PENCILDEF_H
 #define PENCILDEF_H
 
-#define PENCIL_WINDOW_TITLE "Pencil2D v0.5.4 Nightly build Nov 26 2013"
+#define PENCIL_WINDOW_TITLE QString("Pencil2D - Nightly Build %1").arg( __DATE__ )
+
+#define PENCIL_MOVIE_EXT \
+    tr( "AVI (*.avi);;MPEG(*.mpg);;MOV(*.mov);;MP4(*.mp4);;SWF(*.swf);;FLV(*.flv);;WMV(*.wmv)" )
+
+#define PENCIL_IMAGE_FILTER \
+   tr( "PNG (*.png);;JPG(*.jpg *.jpeg);;TIFF(*.tiff);;TIF(*.tif);;BMP(*.bmp);;GIF(*.gif)" )
 
 enum ToolType
 {
@@ -28,6 +34,22 @@ enum ToolPropertyType
     PRESSURE,
     INVISIBILITY,
     PRESERVEALPHA
+};
+
+enum DisplayEffect
+{
+    EFFECT_ANTIALIAS = 0,
+    EFFECT_SHADOW,
+    EFFECT_PREV_ONION,
+    EFFECT_NEXT_ONION,
+    EFFECT_AXIS,
+    EFFECT_GRID_A,
+    EFFECT_COUNT,
+};
+
+enum BackgroundStyle
+{
+
 };
 
 // shortcuts command code
@@ -79,6 +101,8 @@ enum ToolPropertyType
 #define CMD_ADD_FRAME "CmdAddFrame"
 #define CMD_DUPLICATE_FRAME "CmdDuplicateFrame"
 #define CMD_REMOVE_FRAME "CmdRemoveFrame"
+#define CMD_MOVE_FRAME_BACKWARD "CmdMoveFrameBackward"
+#define CMD_MOVE_FRAME_FORWARD "CmdMoveFrameForward"
 #define CMD_TOOL_MOVE "CmdToolMove"
 #define CMD_TOOL_SELECT "CmdToolSelect"
 #define CMD_TOOL_BRUSH "CmdToolBrush"
@@ -113,5 +137,10 @@ enum ToolPropertyType
 #define SETTING_WINDOW_GEOMETRY "WindowGeometry"
 #define SETTING_WINDOW_STATE    "WindowState"
 #define SETTING_DISPLAY_EFFECT  "RenderEffect"
+
+#define SETTING_ONION_MAX_OPACITY     "onionMaxOpacity"
+#define SETTING_ONION_MIN_OPACITY     "onionMinOpacity"
+#define SETTING_ONION_PREV_FRAMES_NUM "onionPrevFramesNum"
+#define SETTING_ONION_NEXT_FRAMES_NUM "onionNextFramesNum"
 
 #endif // PENCILDEF_H

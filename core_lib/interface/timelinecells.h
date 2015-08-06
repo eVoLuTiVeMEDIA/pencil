@@ -32,7 +32,7 @@ public:
     int getLayerHeight() { return layerHeight; }
     int getFrameLength() {return frameLength;}
 
-signals:
+Q_SIGNALS:
     void mouseMovedY(int);
 
 public slots:
@@ -58,7 +58,7 @@ protected:
 
 private:
     TimeLine* timeLine;
-    Editor* editor; // the editor for which this timeLine operates
+    Editor* mEditor; // the editor for which this timeLine operates
 
     TIMELINE_CELL_TYPE m_eType;
 
